@@ -1,4 +1,3 @@
-HTML 
 <!DOCTYPE html> 
 <html lang="ru"> 
 <head> 
@@ -22,6 +21,10 @@ HTML
         <button type="submit">Отправить в облако</button>
     </form>
 </div>
+
+<script type="module">
+    import {initializeApp} from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app/js";
+    import { etFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
  const firebaseConfig = {
   apiKey: "AIzaSyCu6pCIkzlcFHyoFyo6eavyUCLuzLBh0dc",
   authDomain: "kafeshka.firebaseapp.com",
@@ -31,4 +34,28 @@ HTML
   appId: "1:1068703609166:web:553598842b0c68cd74ae1f",
   measurementId: "G-ZNV18CQKLV"
 };
+
+const app =initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+ document.getElementById("feedbackForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const nameInput = document.getElementById("userName").value;
+  const emailInput = document.getElementById("userEmail").value;
+
+  try {
+      await addDoc(collection(db, "requests"),{
+          name: nameInput,
+          email:emailInput,
+          timestamp: new Date()
+      });
+      alert("Готово! Данные сохранены в Firebase.");
+      document.getElementById("feedbackForm").reset();
+  } catch (error) {
+      console.error("Ошибка записи: ", error);
+      alert("Ошибка при отправке!")
+  }
+ });
+</script>
+</body>
 </html> 
