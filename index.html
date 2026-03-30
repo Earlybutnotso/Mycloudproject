@@ -43,7 +43,7 @@
   measurementId: "G-ZNV18CQKLV"
 
   const app = initializeApp(firebaseConfig);
-  const analytics = getAnalytics(app);
+  const db = getFirestore(app);
 
         // МЕТОД: АТОМАРНОЕ ОБНОВЛЕНИЕ (LIKES)
         window.processLike = async (id) => {
