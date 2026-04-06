@@ -1,9 +1,9 @@
-    <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kafeshka Cloud</title>
+    <title>Kafeshka Cloud & Chat</title>
     <style>
         body { font-family: 'Inter', sans-serif; background: #f4f7f6; display: flex; flex-direction: column; align-items: center; padding: 20px; }
         .container { width: 100%; max-width: 500px; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 20px; }
@@ -13,13 +13,22 @@
         button { background: #007bff; color: white; border: none; padding: 12px; border-radius: 6px; width: 100%; font-weight: 600; cursor: pointer; transition: 0.3s; }
         button:hover { background: #0056b3; }
         .logout-btn { background: #ff4757; padding: 8px 15px; width: auto; font-size: 14px; }
+        
+        /* Стили ленты */
         .post { background: #fff; border: 1px solid #eaeaea; padding: 15px; margin-top: 15px; border-radius: 8px; width: 100%; max-width: 500px; }
         .post-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
         .post-avatar { width: 30px; height: 30px; border-radius: 50%; }
         .post-image { width: 100%; border-radius: 8px; margin-top: 10px; display: block; }
         .like-btn { cursor: pointer; border: none; background: #f8f9fa; padding: 5px 12px; border-radius: 20px; margin-top: 10px; font-size: 14px; }
         .time { font-size: 11px; color: #999; margin-left: auto; }
-        .actions { display: flex; gap: 8px; }
+        
+        /* Стили мессенджера (Чата) */
+        #chatSection { height: 400px; display: flex; flex-direction: column; }
+        #chatBox { flex-grow: 1; overflow-y: auto; border: 1px solid #eee; padding: 10px; border-radius: 8px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 8px; }
+        .msg { max-width: 80%; padding: 8px 12px; border-radius: 15px; font-size: 14px; position: relative; }
+        .msg.my { align-self: flex-end; background: #007bff; color: white; border-bottom-right-radius: 2px; }
+        .msg.other { align-self: flex-start; background: #e9e9eb; color: #333; border-bottom-left-radius: 2px; }
+        .msg-info { font-size: 10px; opacity: 0.7; display: block; margin-bottom: 2px; }
     </style>
 </head>
 <body>
@@ -33,10 +42,17 @@
         </div>
     </div>
 
+    <div id="chatSection" class="container" style="display: none;">
+        <h3>Общий чат</h3>
+        <div id="chatBox"></div>
+        <div style="display: flex; gap: 5px;">
+            <input type="text" id="chatInput" placeholder="Напишите сообщение...">
+            <button id="sendMsgBtn" style="width: 80px;">➜</button>
+        </div>
+    </div>
+
     <div id="messageForm" class="container" style="display: none;">
-        <h3>Создать запись</h3>
-        <input type="text" id="name" readonly>
-        <input type="email" id="email" readonly>
+        <h3>Создать запись в ленте</h3>
         <input type="text" id="content" placeholder="Что нового?">
         <input type="file" id="imageInput" accept="image/*" style="border:none;">
         <button id="mainBtn">Опубликовать</button>
@@ -46,7 +62,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
-        import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, updateDoc, doc, increment, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, updateDoc, doc, increment, deleteDoc, limit } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
         import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js";
         import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-storage.js";
 
@@ -56,8 +72,7 @@
           projectId: "kafeshka",
           storageBucket: "kafeshka.firebasestorage.app",
           messagingSenderId: "1068703609166",
-          appId: "1:1068703609166:web:553598842b0c68cd74ae1f",
-          measurementId: "G-ZNV18CQKLV"
+          appId: "1:1068703609166:web:553598842b0c68cd74ae1f"
         };
 
         const app = initializeApp(firebaseConfig);
@@ -66,26 +81,7 @@
         const storage = getStorage(app);
         const provider = new GoogleAuthProvider();
 
-        window.processLike = async (id) => {
-            try { await updateDoc(doc(db, "requests", id), { likes: increment(1) }); }
-            catch (e) { console.error(e); }
-        };
-        
-        window.deletePost = async (id) => {
-            if (confirm("Удалить пост?")) {
-                try { await deleteDoc(doc(db, "requests", id)); }
-                catch (e) { alert("Ошибка при удалении"); }
-            }
-        };
-
-        window.editPost = async (id, old) => {
-            const val = prompt("Изменить текст:", old);
-            if (val && val !== old) {
-                try { await updateDoc(doc(db, "requests", id), { text: val }); }
-                catch (e) { alert("Ошибка при обновлении"); }
-            }
-        };
-
+        // --- ЛОГИКА АУТЕНТИФИКАЦИИ ---
         document.getElementById('loginBtn').onclick = () => signInWithPopup(auth, provider);
         document.getElementById('logoutBtn').onclick = () => signOut(auth);
 
@@ -94,41 +90,75 @@
             document.getElementById('loginBtn').style.display = isUser ? 'none' : 'block';
             document.getElementById('userInfo').style.display = isUser ? 'flex' : 'none';
             document.getElementById('messageForm').style.display = isUser ? 'block' : 'none';
+            document.getElementById('chatSection').style.display = isUser ? 'flex' : 'none';
             if (user) {
                 document.getElementById('userName').innerText = user.displayName;
                 document.getElementById('userPhoto').src = user.photoURL;
-                document.getElementById('name').value = user.displayName;
-                document.getElementById('email').value = user.email;
             }
         });
+
+        // --- ЛОГИКА МЕССЕНДЖЕРА (ЧАТА) ---
+        const sendMsg = async () => {
+            const text = document.getElementById('chatInput').value;
+            if (!text.trim()) return;
+            await addDoc(collection(db, "messages"), {
+                uid: auth.currentUser.uid,
+                name: auth.currentUser.displayName,
+                text: text,
+                timestamp: serverTimestamp()
+            });
+            document.getElementById('chatInput').value = "";
+        };
+
+        document.getElementById('sendMsgBtn').onclick = sendMsg;
+        document.getElementById('chatInput').onkeypress = (e) => { if(e.key === 'Enter') sendMsg(); };
+
+        onSnapshot(query(collection(db, "messages"), orderBy("timestamp", "asc"), limit(50)), (snap) => {
+            const chatBox = document.getElementById('chatBox');
+            chatBox.innerHTML = "";
+            snap.forEach(doc => {
+                const m = doc.data();
+                const isMy = m.uid === auth.currentUser?.uid;
+                chatBox.innerHTML += `
+                    <div class="msg ${isMy ? 'my' : 'other'}">
+                        <span class="msg-info">${isMy ? 'Вы' : m.name}</span>
+                        ${m.text}
+                    </div>`;
+            });
+            chatBox.scrollTop = chatBox.scrollHeight;
+        });
+
+        // --- ЛОГИКА ПОСТОВ (ЛЕНТЫ) ---
+        window.processLike = async (id) => { try { await updateDoc(doc(db, "requests", id), { likes: increment(1) }); } catch (e) { } };
+        
+        window.deletePost = async (id) => {
+            if (confirm("Удалить пост?")) { await deleteDoc(doc(db, "requests", id)); }
+        };
 
         document.getElementById('mainBtn').onclick = async () => {
             const content = document.getElementById('content').value;
             const file = document.getElementById('imageInput').files[0];
-            const btn = document.getElementById('mainBtn');
-            if (!content && !file) return alert("Введите текст или добавьте фото");
+            if (!content && !file) return;
 
-            btn.disabled = true;
-            try {
-                let url = null;
-                if (file) {
-                    const sRef = ref(storage, `posts/${Date.now()}`);
-                    await uploadBytes(sRef, file);
-                    url = await getDownloadURL(sRef);
-                }
-                await addDoc(collection(db, "requests"), {
-                    name: auth.currentUser.displayName,
-                    email: auth.currentUser.email,
-                    photo: auth.currentUser.photoURL,
-                    text: content,
-                    postImage: url,
-                    likes: 0,
-                    timestamp: serverTimestamp()
-                });
-                document.getElementById('content').value = "";
-                document.getElementById('imageInput').value = "";
-            } catch (e) { alert("Ошибка публикации: проверьте правила доступа"); }
-            btn.disabled = false;
+            document.getElementById('mainBtn').disabled = true;
+            let url = null;
+            if (file) {
+                const sRef = ref(storage, `posts/${Date.now()}`);
+                await uploadBytes(sRef, file);
+                url = await getDownloadURL(sRef);
+            }
+            await addDoc(collection(db, "requests"), {
+                name: auth.currentUser.displayName,
+                email: auth.currentUser.email,
+                photo: auth.currentUser.photoURL,
+                text: content,
+                postImage: url,
+                likes: 0,
+                timestamp: serverTimestamp()
+            });
+            document.getElementById('content').value = "";
+            document.getElementById('imageInput').value = "";
+            document.getElementById('mainBtn').disabled = false;
         };
 
         onSnapshot(query(collection(db, "requests"), orderBy("timestamp", "desc")), (snap) => {
@@ -148,10 +178,7 @@
                         ${d.postImage ? `<img src="${d.postImage}" class="post-image">` : ""}
                         <div class="actions">
                             <button class="like-btn" onclick="processLike('${s.id}')">👍 ${d.likes || 0}</button>
-                            ${isMe ? `
-                                <button class="like-btn" onclick="editPost('${s.id}', '${d.text}')">✏️</button>
-                                <button class="like-btn" style="color:red" onclick="deletePost('${s.id}')">🗑️</button>
-                            ` : ""}
+                            ${isMe ? `<button class="like-btn" style="color:red" onclick="deletePost('${s.id}')">🗑️</button>` : ""}
                         </div>
                     </div>`;
             });
