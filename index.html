@@ -10,20 +10,22 @@
         .auth-bar { background: white; padding: 15px; border-radius: 12px; margin-bottom: 20px; display: flex; align-items: center; gap: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
         .user-avatar { width: 40px; height: 40px; border-radius: 50%; border: 2px solid #007bff; }
         input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
-        button { background: #007bff; color: white; border: none; padding: 12px; border-radius: 6px; width: 100%; font-weight: 600; cursor: pointer; }
-        .logout-btn { background: #ff4757; width: auto; }
-        .post { background: #fff; border: 1px solid #eaeaea; padding: 15px; margin-top: 15px; border-radius: 8px; width: 500px; }
-        .post-header { display: flex; align-items: center; gap: 10px; }
+        button { background: #007bff; color: white; border: none; padding: 12px; border-radius: 6px; width: 100%; font-weight: 600; cursor: pointer; transition: 0.3s; }
+        button:hover { background: #0056b3; }
+        .logout-btn { background: #ff4757; padding: 8px 15px; width: auto; font-size: 14px; }
+        .post { background: #fff; border: 1px solid #eaeaea; padding: 15px; margin-top: 15px; border-radius: 8px; width: 100%; max-width: 500px; }
+        .post-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
         .post-avatar { width: 30px; height: 30px; border-radius: 50%; }
-        .post-image { width: 100%; border-radius: 8px; margin-top: 10px; }
-        .like-btn { cursor: pointer; border: none; background: #f8f9fa; padding: 5px 12px; border-radius: 20px; margin-top: 10px; }
+        .post-image { width: 100%; border-radius: 8px; margin-top: 10px; display: block; }
+        .like-btn { cursor: pointer; border: none; background: #f8f9fa; padding: 5px 12px; border-radius: 20px; margin-top: 10px; font-size: 14px; }
         .time { font-size: 11px; color: #999; margin-left: auto; }
+        .actions { display: flex; gap: 8px; }
     </style>
 </head>
 <body>
 
     <div id="authSection" class="container" style="text-align: center;">
-        <button id="loginBtn">Вход с Google</button>
+        <button id="loginBtn">Вход с помощью Google</button>
         <div id="userInfo" style="display: none;" class="auth-bar">
             <img id="userPhoto" class="user-avatar" src="">
             <span id="userName" style="font-weight: bold;"></span>
@@ -32,10 +34,11 @@
     </div>
 
     <div id="messageForm" class="container" style="display: none;">
+        <h3>Создать запись</h3>
         <input type="text" id="name" readonly>
         <input type="email" id="email" readonly>
         <input type="text" id="content" placeholder="Что нового?">
-        <input type="file" id="imageInput" accept="image/*">
+        <input type="file" id="imageInput" accept="image/*" style="border:none;">
         <button id="mainBtn">Опубликовать</button>
     </div>
 
@@ -62,6 +65,17 @@
         const storage = getStorage(app);
         const provider = new GoogleAuthProvider();
 
+        window.processLike = (id) => updateDoc(doc(db, "requests", id), { likes: increment(1) });
+        
+        window.deletePost = (id) => {
+            if (confirm("Удалить пост?")) deleteDoc(doc(db, "requests", id));
+        };
+
+        window.editPost = (id, old) => {
+            const val = prompt("Изменить текст:", old);
+            if (val && val !== old) updateDoc(doc(db, "requests", id), { text: val });
+        };
+
         document.getElementById('loginBtn').onclick = () => signInWithPopup(auth, provider);
         document.getElementById('logoutBtn').onclick = () => signOut(auth);
 
@@ -78,23 +92,13 @@
             }
         });
 
-        window.processLike = (id) => updateDoc(doc(db, "requests", id), { likes: increment(1) });
-        
-        window.deletePost = (id) => {
-            if (confirm("Удалить?")) deleteDoc(doc(db, "requests", id));
-        };
-
-        window.editPost = (id, txt) => {
-            const val = prompt("Текст:", txt);
-            if (val) updateDoc(doc(db, "requests", id), { text: val });
-        };
-
         document.getElementById('mainBtn').onclick = async () => {
             const content = document.getElementById('content').value;
             const file = document.getElementById('imageInput').files[0];
             const btn = document.getElementById('mainBtn');
-            btn.disabled = true;
+            if (!content && !file) return;
 
+            btn.disabled = true;
             try {
                 let url = null;
                 if (file) {
@@ -112,33 +116,4 @@
                     timestamp: serverTimestamp()
                 });
                 document.getElementById('content').value = "";
-            } catch (e) { alert(e.message); }
-            btn.disabled = false;
-        };
-
-        onSnapshot(query(collection(db, "requests"), orderBy("timestamp", "desc")), (snap) => {
-            const f = document.getElementById('feed');
-            f.innerHTML = "";
-            snap.forEach((d) => {
-                const item = d.data();
-                const isMe = auth.currentUser?.email === item.email;
-                f.innerHTML += `
-                    <div class="post">
-                        <div class="post-header">
-                            <img src="${item.photo}" class="post-avatar">
-                            <b>${item.name}</b>
-                            <span class="time">${item.timestamp?.toDate().toLocaleTimeString() || ''}</span>
-                        </div>
-                        <p>${item.text}</p>
-                        ${item.postImage ? `<img src="${item.postImage}" class="post-image">` : ""}
-                        <button class="like-btn" onclick="processLike('${d.id}')">👍 ${item.likes}</button>
-                        ${isMe ? `
-                            <button class="like-btn" onclick="editPost('${d.id}', '${item.text}')">✏️</button>
-                            <button class="like-btn" onclick="deletePost('${d.id}')">🗑️</button>
-                        ` : ""}
-                    </div>`;
-            });
-        });
-    </script>
-</body>
-</html>
+                document.getElementById
