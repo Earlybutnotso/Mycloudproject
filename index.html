@@ -3,38 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kafeshka Cloud: Social & Direct</title>
+    <title>Kafeshka Cloud</title>
     <style>
-        body { font-family: 'Inter', sans-serif; background: #f4f7f6; display: flex; flex-direction: column; align-items: center; padding: 20px; margin: 0; }
-        .container { width: 100%; max-width: 500px; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 20px; box-sizing: border-box; }
-        .auth-bar { background: white; padding: 15px; border-radius: 12px; margin-bottom: 20px; display: flex; align-items: center; gap: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); width: 100%; max-width: 500px; }
+        body { font-family: 'Inter', sans-serif; background: #f4f7f6; display: flex; flex-direction: column; align-items: center; padding: 20px; }
+        .container { width: 100%; max-width: 500px; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        .auth-bar { background: white; padding: 15px; border-radius: 12px; margin-bottom: 20px; display: flex; align-items: center; gap: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
         .user-avatar { width: 40px; height: 40px; border-radius: 50%; border: 2px solid #007bff; }
-        input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
-        button { background: #007bff; color: white; border: none; padding: 12px; border-radius: 8px; width: 100%; font-weight: 600; cursor: pointer; transition: 0.2s; }
+        input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
+        button { background: #007bff; color: white; border: none; padding: 12px; border-radius: 6px; width: 100%; font-weight: 600; cursor: pointer; transition: 0.3s; }
         button:hover { background: #0056b3; }
-        button:disabled { background: #ccc; cursor: not-allowed; }
         .logout-btn { background: #ff4757; padding: 8px 15px; width: auto; font-size: 14px; }
-        
-        /* Стили постов */
-        .post { background: #fff; border: 1px solid #eaeaea; padding: 15px; margin-top: 15px; border-radius: 10px; width: 100%; max-width: 500px; box-sizing: border-box; }
+        .post { background: #fff; border: 1px solid #eaeaea; padding: 15px; margin-top: 15px; border-radius: 8px; width: 100%; max-width: 500px; }
         .post-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
-        .post-avatar { width: 35px; height: 35px; border-radius: 50%; }
-        .post-author { cursor: pointer; color: #007bff; font-weight: bold; }
+        .post-avatar { width: 30px; height: 30px; border-radius: 50%; }
         .post-image { width: 100%; border-radius: 8px; margin-top: 10px; display: block; }
-        .actions { display: flex; gap: 10px; margin-top: 10px; }
-        .like-btn { cursor: pointer; border: none; background: #f8f9fa; padding: 6px 12px; border-radius: 20px; font-size: 13px; width: auto; color: #333; }
+        .like-btn { cursor: pointer; border: none; background: #f8f9fa; padding: 5px 12px; border-radius: 20px; margin-top: 10px; font-size: 14px; }
         .time { font-size: 11px; color: #999; margin-left: auto; }
-
-        /* Стили Чата */
-        .chat-box { height: 300px; overflow-y: auto; border: 1px solid #f0f0f0; padding: 10px; border-radius: 8px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 8px; background: #fafafa; }
-        .msg { max-width: 85%; padding: 8px 12px; border-radius: 12px; font-size: 14px; line-height: 1.4; word-wrap: break-word; }
-        .msg.my { align-self: flex-end; background: #007bff; color: white; border-bottom-right-radius: 2px; }
-        .msg.other { align-self: flex-start; background: #e9e9eb; color: #333; border-bottom-left-radius: 2px; }
-        .msg-info { font-size: 10px; opacity: 0.7; display: block; margin-bottom: 2px; font-weight: bold; }
-        
-        h3 { margin-top: 0; font-size: 18px; color: #333; }
-        .section-title { display: flex; justify-content: space-between; align-items: center; }
-        .close-btn { background: none; color: #999; width: auto; padding: 0; font-size: 20px; }
+        .actions { display: flex; gap: 8px; }
     </style>
 </head>
 <body>
@@ -43,37 +28,25 @@
         <button id="loginBtn">Вход с помощью Google</button>
         <div id="userInfo" style="display: none;" class="auth-bar">
             <img id="userPhoto" class="user-avatar" src="">
-            <span id="userName"></span>
+            <span id="userName" style="font-weight: bold;"></span>
             <button id="logoutBtn" class="logout-btn">Выйти</button>
         </div>
     </div>
 
-    <div id="directSection" class="container" style="display: none;">
-        <div class="section-title">
-            <h3 id="chatTitle">Личный чат</h3>
-            <button class="close-btn" onclick="closeDirect()">✕</button>
-        </div>
-        <div id="directBox" class="chat-box"></div>
-        <div style="display: flex; gap: 8px;">
-            <input type="text" id="directInput" placeholder="Написать сообщение...">
-            <button id="sendDirectBtn" style="width: 60px;">➜</button>
-        </div>
-    </div>
-
-    <div id="postForm" class="container" style="display: none;">
-        <h3>Что у вас нового?</h3>
-        <input type="text" id="postText" placeholder="Расскажите что-нибудь...">
-        <div style="display: flex; align-items: center; gap: 10px;">
-            <input type="file" id="postFile" accept="image/*" style="border:none; padding: 0;">
-            <button id="publishBtn" style="width: 150px;">Опубликовать</button>
-        </div>
+    <div id="messageForm" class="container" style="display: none;">
+        <h3>Создать запись</h3>
+        <input type="text" id="name" readonly>
+        <input type="email" id="email" readonly>
+        <input type="text" id="content" placeholder="Что нового?">
+        <input type="file" id="imageInput" accept="image/*" style="border:none;">
+        <button id="mainBtn">Опубликовать</button>
     </div>
 
     <div id="feed"></div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
-        import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, updateDoc, doc, increment, deleteDoc, limit } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, updateDoc, doc, increment, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
         import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js";
         import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-storage.js";
 
@@ -92,181 +65,94 @@
         const storage = getStorage(app);
         const provider = new GoogleAuthProvider();
 
-        let currentChatId = null;
-        let directUnsub = null;
-
-        // --- УТИЛИТЫ ---
-        const safeEl = (tag, cls, txt) => {
-            const el = document.createElement(tag);
-            if (cls) el.className = cls;
-            if (txt) el.textContent = txt; // Защита XSS
-            return el;
+        window.processLike = async (id) => {
+            try { await updateDoc(doc(db, "requests", id), { likes: increment(1) }); }
+            catch (e) { console.error(e); }
+        };
+        
+        window.deletePost = async (id) => {
+            if (confirm("Удалить пост?")) {
+                try { await deleteDoc(doc(db, "requests", id)); }
+                catch (e) { alert("Ошибка при удалении"); }
+            }
         };
 
-        const getChatId = (u1, u2) => [u1, u2].sort().join('_');
+        window.editPost = async (id, old) => {
+            const val = prompt("Изменить текст:", old);
+            if (val && val !== old) {
+                try { await updateDoc(doc(db, "requests", id), { text: val }); }
+                catch (e) { alert("Ошибка при обновлении"); }
+            }
+        };
 
-        // --- АУТЕНТИФИКАЦИЯ ---
         document.getElementById('loginBtn').onclick = () => signInWithPopup(auth, provider);
         document.getElementById('logoutBtn').onclick = () => signOut(auth);
 
         onAuthStateChanged(auth, (user) => {
-            const isAuth = !!user;
-            document.getElementById('loginBtn').style.display = isAuth ? 'none' : 'block';
-            document.getElementById('userInfo').style.display = isAuth ? 'flex' : 'none';
-            document.getElementById('postForm').style.display = isAuth ? 'block' : 'none';
+            const isUser = !!user;
+            document.getElementById('loginBtn').style.display = isUser ? 'none' : 'block';
+            document.getElementById('userInfo').style.display = isUser ? 'flex' : 'none';
+            document.getElementById('messageForm').style.display = isUser ? 'block' : 'none';
             if (user) {
-                document.getElementById('userName').textContent = user.displayName;
+                document.getElementById('userName').innerText = user.displayName;
                 document.getElementById('userPhoto').src = user.photoURL;
-            } else {
-                closeDirect();
+                document.getElementById('name').value = user.displayName;
+                document.getElementById('email').value = user.email;
             }
         });
 
-        // --- ЛИЧНЫЕ СООБЩЕНИЯ ---
-        window.openChat = (targetUid, targetName) => {
-            if (!auth.currentUser) return alert("Войдите, чтобы писать сообщения");
-            if (auth.currentUser.uid === targetUid) return;
+        document.getElementById('mainBtn').onclick = async () => {
+            const content = document.getElementById('content').value;
+            const file = document.getElementById('imageInput').files[0];
+            const btn = document.getElementById('mainBtn');
+            if (!content && !file) return alert("Введите текст или добавьте фото");
 
-            currentChatId = getChatId(auth.currentUser.uid, targetUid);
-            document.getElementById('directSection').style.display = 'block';
-            document.getElementById('chatTitle').textContent = `Чат с ${targetName}`;
-            
-            const box = document.getElementById('directBox');
-            box.innerHTML = "";
-
-            if (directUnsub) directUnsub();
-
-            const q = query(collection(db, "chats", currentChatId, "messages"), orderBy("timestamp", "asc"), limit(50));
-            directUnsub = onSnapshot(q, (snap) => {
-                snap.docChanges().forEach(change => {
-                    if (change.type === "added") {
-                        const m = change.doc.data();
-                        const isMy = m.senderId === auth.currentUser.uid;
-                        const msgDiv = safeEl('div', `msg ${isMy ? 'my' : 'other'}`);
-                        
-                        const info = safeEl('span', 'msg-info', isMy ? 'Вы' : m.senderName);
-                        msgDiv.appendChild(info);
-                        msgDiv.appendChild(document.createTextNode(m.text));
-                        
-                        box.appendChild(msgDiv);
-                        box.scrollTop = box.scrollHeight;
-                    }
-                });
-            });
-        };
-
-        window.closeDirect = () => {
-            document.getElementById('directSection').style.display = 'none';
-            if (directUnsub) directUnsub();
-            currentChatId = null;
-        };
-
-        document.getElementById('sendDirectBtn').onclick = async () => {
-            const input = document.getElementById('directInput');
-            const text = input.value.trim();
-            if (!text || !currentChatId) return;
-
-            try {
-                await addDoc(collection(db, "chats", currentChatId, "messages"), {
-                    senderId: auth.currentUser.uid,
-                    senderName: auth.currentUser.displayName,
-                    text: text,
-                    timestamp: serverTimestamp()
-                });
-                input.value = "";
-            } catch (e) { console.error(e); }
-        };
-
-        // --- ЛЕНТА ПОСТОВ ---
-        document.getElementById('publishBtn').onclick = async () => {
-            const text = document.getElementById('postText').value.trim();
-            const file = document.getElementById('postFile').files[0];
-            const btn = document.getElementById('publishBtn');
-
-            if (!text && !file) return;
             btn.disabled = true;
-
             try {
                 let url = null;
                 if (file) {
-                    const sRef = ref(storage, `posts/${Date.now()}_${file.name}`);
+                    const sRef = ref(storage, `posts/${Date.now()}`);
                     await uploadBytes(sRef, file);
                     url = await getDownloadURL(sRef);
                 }
-
                 await addDoc(collection(db, "requests"), {
-                    uid: auth.currentUser.uid,
                     name: auth.currentUser.displayName,
+                    email: auth.currentUser.email,
                     photo: auth.currentUser.photoURL,
-                    text: text,
+                    text: content,
                     postImage: url,
                     likes: 0,
                     timestamp: serverTimestamp()
                 });
-
-                document.getElementById('postText').value = "";
-                document.getElementById('postFile').value = "";
-            } catch (e) {
-                alert("Ошибка публикации. Проверьте правила доступа Firestore.");
-                console.error(e);
-            } finally {
-                btn.disabled = false;
-            }
+                document.getElementById('content').value = "";
+                document.getElementById('imageInput').value = "";
+            } catch (e) { alert("Ошибка публикации: проверьте правила доступа"); }
+            btn.disabled = false;
         };
 
-        // Лайки и удаление
-        window.processLike = async (id) => {
-            try { await updateDoc(doc(db, "requests", id), { likes: increment(1) }); } catch(e) {}
-        };
-        window.deletePost = async (id) => {
-            if (confirm("Удалить этот пост?")) await deleteDoc(doc(db, "requests", id));
-        };
-
-        // Рендеринг ленты
         onSnapshot(query(collection(db, "requests"), orderBy("timestamp", "desc")), (snap) => {
             const feed = document.getElementById('feed');
             feed.innerHTML = "";
-
-            snap.forEach(s => {
+            snap.forEach((s) => {
                 const d = s.data();
-                const isMe = auth.currentUser?.uid === d.uid;
-
-                const post = safeEl('div', 'post');
-                
-                // Header
-                const header = safeEl('div', 'post-header');
-                const ava = safeEl('img', 'post-avatar'); ava.src = d.photo || '';
-                const name = safeEl('span', 'post-author', d.name);
-                name.onclick = () => openChat(d.uid, d.name); // ОТКРЫТЬ ЧАТ
-                
-                const time = safeEl('span', 'time', d.timestamp?.toDate().toLocaleTimeString() || '...');
-                
-                header.append(ava, name, time);
-
-                // Content
-                const p = safeEl('p', '', d.text);
-                post.append(header, p);
-
-                if (d.postImage) {
-                    const img = safeEl('img', 'post-image'); img.src = d.postImage;
-                    post.append(img);
-                }
-
-                // Actions
-                const actions = safeEl('div', 'actions');
-                const lBtn = safeEl('button', 'like-btn', `👍 ${d.likes || 0}`);
-                lBtn.onclick = () => processLike(s.id);
-                actions.append(lBtn);
-
-                if (isMe) {
-                    const dBtn = safeEl('button', 'like-btn', '🗑️');
-                    dBtn.style.color = 'red';
-                    dBtn.onclick = () => deletePost(s.id);
-                    actions.append(dBtn);
-                }
-
-                post.append(actions);
-                feed.append(post);
+                const isMe = auth.currentUser?.email === d.email;
+                feed.innerHTML += `
+                    <div class="post">
+                        <div class="post-header">
+                            <img src="${d.photo}" class="post-avatar">
+                            <b>${d.name}</b>
+                            <span class="time">${d.timestamp?.toDate().toLocaleTimeString() || ''}</span>
+                        </div>
+                        <p>${d.text || ""}</p>
+                        ${d.postImage ? `<img src="${d.postImage}" class="post-image">` : ""}
+                        <div class="actions">
+                            <button class="like-btn" onclick="processLike('${s.id}')">👍 ${d.likes || 0}</button>
+                            ${isMe ? `
+                                <button class="like-btn" onclick="editPost('${s.id}', '${d.text}')">✏️</button>
+                                <button class="like-btn" style="color:red" onclick="deletePost('${s.id}')">🗑️</button>
+                            ` : ""}
+                        </div>
+                    </div>`;
             });
         });
     </script>
