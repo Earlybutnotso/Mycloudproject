@@ -3,32 +3,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kafeshka Cloud & Chat</title>
+    <title>Kafeshka Cloud: Social & Direct</title>
     <style>
-        body { font-family: 'Inter', sans-serif; background: #f4f7f6; display: flex; flex-direction: column; align-items: center; padding: 20px; }
-        .container { width: 100%; max-width: 500px; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 20px; }
-        .auth-bar { background: white; padding: 15px; border-radius: 12px; margin-bottom: 20px; display: flex; align-items: center; gap: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        body { font-family: 'Inter', sans-serif; background: #f4f7f6; display: flex; flex-direction: column; align-items: center; padding: 20px; margin: 0; }
+        .container { width: 100%; max-width: 500px; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 20px; box-sizing: border-box; }
+        .auth-bar { background: white; padding: 15px; border-radius: 12px; margin-bottom: 20px; display: flex; align-items: center; gap: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); width: 100%; max-width: 500px; }
         .user-avatar { width: 40px; height: 40px; border-radius: 50%; border: 2px solid #007bff; }
-        input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
-        button { background: #007bff; color: white; border: none; padding: 12px; border-radius: 6px; width: 100%; font-weight: 600; cursor: pointer; transition: 0.3s; }
+        input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
+        button { background: #007bff; color: white; border: none; padding: 12px; border-radius: 8px; width: 100%; font-weight: 600; cursor: pointer; transition: 0.2s; }
         button:hover { background: #0056b3; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
         .logout-btn { background: #ff4757; padding: 8px 15px; width: auto; font-size: 14px; }
         
-        /* Стили ленты */
-        .post { background: #fff; border: 1px solid #eaeaea; padding: 15px; margin-top: 15px; border-radius: 8px; width: 100%; max-width: 500px; }
+        /* Стили постов */
+        .post { background: #fff; border: 1px solid #eaeaea; padding: 15px; margin-top: 15px; border-radius: 10px; width: 100%; max-width: 500px; box-sizing: border-box; }
         .post-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
-        .post-avatar { width: 30px; height: 30px; border-radius: 50%; }
+        .post-avatar { width: 35px; height: 35px; border-radius: 50%; }
+        .post-author { cursor: pointer; color: #007bff; font-weight: bold; }
         .post-image { width: 100%; border-radius: 8px; margin-top: 10px; display: block; }
-        .like-btn { cursor: pointer; border: none; background: #f8f9fa; padding: 5px 12px; border-radius: 20px; margin-top: 10px; font-size: 14px; }
+        .actions { display: flex; gap: 10px; margin-top: 10px; }
+        .like-btn { cursor: pointer; border: none; background: #f8f9fa; padding: 6px 12px; border-radius: 20px; font-size: 13px; width: auto; color: #333; }
         .time { font-size: 11px; color: #999; margin-left: auto; }
-        
-        /* Стили мессенджера (Чата) */
-        #chatSection { height: 400px; display: flex; flex-direction: column; }
-        #chatBox { flex-grow: 1; overflow-y: auto; border: 1px solid #eee; padding: 10px; border-radius: 8px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 8px; }
-        .msg { max-width: 80%; padding: 8px 12px; border-radius: 15px; font-size: 14px; position: relative; }
+
+        /* Стили Чата */
+        .chat-box { height: 300px; overflow-y: auto; border: 1px solid #f0f0f0; padding: 10px; border-radius: 8px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 8px; background: #fafafa; }
+        .msg { max-width: 85%; padding: 8px 12px; border-radius: 12px; font-size: 14px; line-height: 1.4; word-wrap: break-word; }
         .msg.my { align-self: flex-end; background: #007bff; color: white; border-bottom-right-radius: 2px; }
         .msg.other { align-self: flex-start; background: #e9e9eb; color: #333; border-bottom-left-radius: 2px; }
-        .msg-info { font-size: 10px; opacity: 0.7; display: block; margin-bottom: 2px; }
+        .msg-info { font-size: 10px; opacity: 0.7; display: block; margin-bottom: 2px; font-weight: bold; }
+        
+        h3 { margin-top: 0; font-size: 18px; color: #333; }
+        .section-title { display: flex; justify-content: space-between; align-items: center; }
+        .close-btn { background: none; color: #999; width: auto; padding: 0; font-size: 20px; }
     </style>
 </head>
 <body>
@@ -37,25 +43,30 @@
         <button id="loginBtn">Вход с помощью Google</button>
         <div id="userInfo" style="display: none;" class="auth-bar">
             <img id="userPhoto" class="user-avatar" src="">
-            <span id="userName" style="font-weight: bold;"></span>
+            <span id="userName"></span>
             <button id="logoutBtn" class="logout-btn">Выйти</button>
         </div>
     </div>
 
-    <div id="chatSection" class="container" style="display: none;">
-        <h3>Общий чат</h3>
-        <div id="chatBox"></div>
-        <div style="display: flex; gap: 5px;">
-            <input type="text" id="chatInput" placeholder="Напишите сообщение...">
-            <button id="sendMsgBtn" style="width: 80px;">➜</button>
+    <div id="directSection" class="container" style="display: none;">
+        <div class="section-title">
+            <h3 id="chatTitle">Личный чат</h3>
+            <button class="close-btn" onclick="closeDirect()">✕</button>
+        </div>
+        <div id="directBox" class="chat-box"></div>
+        <div style="display: flex; gap: 8px;">
+            <input type="text" id="directInput" placeholder="Написать сообщение...">
+            <button id="sendDirectBtn" style="width: 60px;">➜</button>
         </div>
     </div>
 
-    <div id="messageForm" class="container" style="display: none;">
-        <h3>Создать запись в ленте</h3>
-        <input type="text" id="content" placeholder="Что нового?">
-        <input type="file" id="imageInput" accept="image/*" style="border:none;">
-        <button id="mainBtn">Опубликовать</button>
+    <div id="postForm" class="container" style="display: none;">
+        <h3>Что у вас нового?</h3>
+        <input type="text" id="postText" placeholder="Расскажите что-нибудь...">
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <input type="file" id="postFile" accept="image/*" style="border:none; padding: 0;">
+            <button id="publishBtn" style="width: 150px;">Опубликовать</button>
+        </div>
     </div>
 
     <div id="feed"></div>
@@ -67,12 +78,12 @@
         import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-storage.js";
 
         const firebaseConfig = {
-          apiKey: "AIzaSyCu6pCIkzlcFHyoFyo6eavyUCLuzLBh0dc",
-          authDomain: "kafeshka.firebaseapp.com",
-          projectId: "kafeshka",
-          storageBucket: "kafeshka.firebasestorage.app",
-          messagingSenderId: "1068703609166",
-          appId: "1:1068703609166:web:553598842b0c68cd74ae1f"
+            apiKey: "AIzaSyCu6pCIkzlcFHyoFyo6eavyUCLuzLBh0dc",
+            authDomain: "kafeshka.firebaseapp.com",
+            projectId: "kafeshka",
+            storageBucket: "kafeshka.firebasestorage.app",
+            messagingSenderId: "1068703609166",
+            appId: "1:1068703609166:web:553598842b0c68cd74ae1f"
         };
 
         const app = initializeApp(firebaseConfig);
@@ -81,106 +92,181 @@
         const storage = getStorage(app);
         const provider = new GoogleAuthProvider();
 
-        // --- ЛОГИКА АУТЕНТИФИКАЦИИ ---
+        let currentChatId = null;
+        let directUnsub = null;
+
+        // --- УТИЛИТЫ ---
+        const safeEl = (tag, cls, txt) => {
+            const el = document.createElement(tag);
+            if (cls) el.className = cls;
+            if (txt) el.textContent = txt; // Защита XSS
+            return el;
+        };
+
+        const getChatId = (u1, u2) => [u1, u2].sort().join('_');
+
+        // --- АУТЕНТИФИКАЦИЯ ---
         document.getElementById('loginBtn').onclick = () => signInWithPopup(auth, provider);
         document.getElementById('logoutBtn').onclick = () => signOut(auth);
 
         onAuthStateChanged(auth, (user) => {
-            const isUser = !!user;
-            document.getElementById('loginBtn').style.display = isUser ? 'none' : 'block';
-            document.getElementById('userInfo').style.display = isUser ? 'flex' : 'none';
-            document.getElementById('messageForm').style.display = isUser ? 'block' : 'none';
-            document.getElementById('chatSection').style.display = isUser ? 'flex' : 'none';
+            const isAuth = !!user;
+            document.getElementById('loginBtn').style.display = isAuth ? 'none' : 'block';
+            document.getElementById('userInfo').style.display = isAuth ? 'flex' : 'none';
+            document.getElementById('postForm').style.display = isAuth ? 'block' : 'none';
             if (user) {
-                document.getElementById('userName').innerText = user.displayName;
+                document.getElementById('userName').textContent = user.displayName;
                 document.getElementById('userPhoto').src = user.photoURL;
+            } else {
+                closeDirect();
             }
         });
 
-        // --- ЛОГИКА МЕССЕНДЖЕРА (ЧАТА) ---
-        const sendMsg = async () => {
-            const text = document.getElementById('chatInput').value;
-            if (!text.trim()) return;
-            await addDoc(collection(db, "messages"), {
-                uid: auth.currentUser.uid,
-                name: auth.currentUser.displayName,
-                text: text,
-                timestamp: serverTimestamp()
+        // --- ЛИЧНЫЕ СООБЩЕНИЯ ---
+        window.openChat = (targetUid, targetName) => {
+            if (!auth.currentUser) return alert("Войдите, чтобы писать сообщения");
+            if (auth.currentUser.uid === targetUid) return;
+
+            currentChatId = getChatId(auth.currentUser.uid, targetUid);
+            document.getElementById('directSection').style.display = 'block';
+            document.getElementById('chatTitle').textContent = `Чат с ${targetName}`;
+            
+            const box = document.getElementById('directBox');
+            box.innerHTML = "";
+
+            if (directUnsub) directUnsub();
+
+            const q = query(collection(db, "chats", currentChatId, "messages"), orderBy("timestamp", "asc"), limit(50));
+            directUnsub = onSnapshot(q, (snap) => {
+                snap.docChanges().forEach(change => {
+                    if (change.type === "added") {
+                        const m = change.doc.data();
+                        const isMy = m.senderId === auth.currentUser.uid;
+                        const msgDiv = safeEl('div', `msg ${isMy ? 'my' : 'other'}`);
+                        
+                        const info = safeEl('span', 'msg-info', isMy ? 'Вы' : m.senderName);
+                        msgDiv.appendChild(info);
+                        msgDiv.appendChild(document.createTextNode(m.text));
+                        
+                        box.appendChild(msgDiv);
+                        box.scrollTop = box.scrollHeight;
+                    }
+                });
             });
-            document.getElementById('chatInput').value = "";
         };
 
-        document.getElementById('sendMsgBtn').onclick = sendMsg;
-        document.getElementById('chatInput').onkeypress = (e) => { if(e.key === 'Enter') sendMsg(); };
+        window.closeDirect = () => {
+            document.getElementById('directSection').style.display = 'none';
+            if (directUnsub) directUnsub();
+            currentChatId = null;
+        };
 
-        onSnapshot(query(collection(db, "messages"), orderBy("timestamp", "asc"), limit(50)), (snap) => {
-            const chatBox = document.getElementById('chatBox');
-            chatBox.innerHTML = "";
-            snap.forEach(doc => {
-                const m = doc.data();
-                const isMy = m.uid === auth.currentUser?.uid;
-                chatBox.innerHTML += `
-                    <div class="msg ${isMy ? 'my' : 'other'}">
-                        <span class="msg-info">${isMy ? 'Вы' : m.name}</span>
-                        ${m.text}
-                    </div>`;
-            });
-            chatBox.scrollTop = chatBox.scrollHeight;
-        });
+        document.getElementById('sendDirectBtn').onclick = async () => {
+            const input = document.getElementById('directInput');
+            const text = input.value.trim();
+            if (!text || !currentChatId) return;
 
-        // --- ЛОГИКА ПОСТОВ (ЛЕНТЫ) ---
-        window.processLike = async (id) => { try { await updateDoc(doc(db, "requests", id), { likes: increment(1) }); } catch (e) { } };
-        
+            try {
+                await addDoc(collection(db, "chats", currentChatId, "messages"), {
+                    senderId: auth.currentUser.uid,
+                    senderName: auth.currentUser.displayName,
+                    text: text,
+                    timestamp: serverTimestamp()
+                });
+                input.value = "";
+            } catch (e) { console.error(e); }
+        };
+
+        // --- ЛЕНТА ПОСТОВ ---
+        document.getElementById('publishBtn').onclick = async () => {
+            const text = document.getElementById('postText').value.trim();
+            const file = document.getElementById('postFile').files[0];
+            const btn = document.getElementById('publishBtn');
+
+            if (!text && !file) return;
+            btn.disabled = true;
+
+            try {
+                let url = null;
+                if (file) {
+                    const sRef = ref(storage, `posts/${Date.now()}_${file.name}`);
+                    await uploadBytes(sRef, file);
+                    url = await getDownloadURL(sRef);
+                }
+
+                await addDoc(collection(db, "requests"), {
+                    uid: auth.currentUser.uid,
+                    name: auth.currentUser.displayName,
+                    photo: auth.currentUser.photoURL,
+                    text: text,
+                    postImage: url,
+                    likes: 0,
+                    timestamp: serverTimestamp()
+                });
+
+                document.getElementById('postText').value = "";
+                document.getElementById('postFile').value = "";
+            } catch (e) {
+                alert("Ошибка публикации. Проверьте правила доступа Firestore.");
+                console.error(e);
+            } finally {
+                btn.disabled = false;
+            }
+        };
+
+        // Лайки и удаление
+        window.processLike = async (id) => {
+            try { await updateDoc(doc(db, "requests", id), { likes: increment(1) }); } catch(e) {}
+        };
         window.deletePost = async (id) => {
-            if (confirm("Удалить пост?")) { await deleteDoc(doc(db, "requests", id)); }
+            if (confirm("Удалить этот пост?")) await deleteDoc(doc(db, "requests", id));
         };
 
-        document.getElementById('mainBtn').onclick = async () => {
-            const content = document.getElementById('content').value;
-            const file = document.getElementById('imageInput').files[0];
-            if (!content && !file) return;
-
-            document.getElementById('mainBtn').disabled = true;
-            let url = null;
-            if (file) {
-                const sRef = ref(storage, `posts/${Date.now()}`);
-                await uploadBytes(sRef, file);
-                url = await getDownloadURL(sRef);
-            }
-            await addDoc(collection(db, "requests"), {
-                name: auth.currentUser.displayName,
-                email: auth.currentUser.email,
-                photo: auth.currentUser.photoURL,
-                text: content,
-                postImage: url,
-                likes: 0,
-                timestamp: serverTimestamp()
-            });
-            document.getElementById('content').value = "";
-            document.getElementById('imageInput').value = "";
-            document.getElementById('mainBtn').disabled = false;
-        };
-
+        // Рендеринг ленты
         onSnapshot(query(collection(db, "requests"), orderBy("timestamp", "desc")), (snap) => {
             const feed = document.getElementById('feed');
             feed.innerHTML = "";
-            snap.forEach((s) => {
+
+            snap.forEach(s => {
                 const d = s.data();
-                const isMe = auth.currentUser?.email === d.email;
-                feed.innerHTML += `
-                    <div class="post">
-                        <div class="post-header">
-                            <img src="${d.photo}" class="post-avatar">
-                            <b>${d.name}</b>
-                            <span class="time">${d.timestamp?.toDate().toLocaleTimeString() || ''}</span>
-                        </div>
-                        <p>${d.text || ""}</p>
-                        ${d.postImage ? `<img src="${d.postImage}" class="post-image">` : ""}
-                        <div class="actions">
-                            <button class="like-btn" onclick="processLike('${s.id}')">👍 ${d.likes || 0}</button>
-                            ${isMe ? `<button class="like-btn" style="color:red" onclick="deletePost('${s.id}')">🗑️</button>` : ""}
-                        </div>
-                    </div>`;
+                const isMe = auth.currentUser?.uid === d.uid;
+
+                const post = safeEl('div', 'post');
+                
+                // Header
+                const header = safeEl('div', 'post-header');
+                const ava = safeEl('img', 'post-avatar'); ava.src = d.photo || '';
+                const name = safeEl('span', 'post-author', d.name);
+                name.onclick = () => openChat(d.uid, d.name); // ОТКРЫТЬ ЧАТ
+                
+                const time = safeEl('span', 'time', d.timestamp?.toDate().toLocaleTimeString() || '...');
+                
+                header.append(ava, name, time);
+
+                // Content
+                const p = safeEl('p', '', d.text);
+                post.append(header, p);
+
+                if (d.postImage) {
+                    const img = safeEl('img', 'post-image'); img.src = d.postImage;
+                    post.append(img);
+                }
+
+                // Actions
+                const actions = safeEl('div', 'actions');
+                const lBtn = safeEl('button', 'like-btn', `👍 ${d.likes || 0}`);
+                lBtn.onclick = () => processLike(s.id);
+                actions.append(lBtn);
+
+                if (isMe) {
+                    const dBtn = safeEl('button', 'like-btn', '🗑️');
+                    dBtn.style.color = 'red';
+                    dBtn.onclick = () => deletePost(s.id);
+                    actions.append(dBtn);
+                }
+
+                post.append(actions);
+                feed.append(post);
             });
         });
     </script>
