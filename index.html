@@ -65,15 +65,24 @@
         const storage = getStorage(app);
         const provider = new GoogleAuthProvider();
 
-        window.processLike = (id) => updateDoc(doc(db, "requests", id), { likes: increment(1) });
+        window.processLike = async (id) => {
+            try { await updateDoc(doc(db, "requests", id), { likes: increment(1) }); }
+            catch (e) { console.error(e); }
+        };
         
-        window.deletePost = (id) => {
-            if (confirm("Удалить пост?")) deleteDoc(doc(db, "requests", id));
+        window.deletePost = async (id) => {
+            if (confirm("Удалить пост?")) {
+                try { await deleteDoc(doc(db, "requests", id)); }
+                catch (e) { alert("Ошибка при удалении"); }
+            }
         };
 
-        window.editPost = (id, old) => {
+        window.editPost = async (id, old) => {
             const val = prompt("Изменить текст:", old);
-            if (val && val !== old) updateDoc(doc(db, "requests", id), { text: val });
+            if (val && val !== old) {
+                try { await updateDoc(doc(db, "requests", id), { text: val }); }
+                catch (e) { alert("Ошибка при обновлении"); }
+            }
         };
 
         document.getElementById('loginBtn').onclick = () => signInWithPopup(auth, provider);
@@ -96,7 +105,7 @@
             const content = document.getElementById('content').value;
             const file = document.getElementById('imageInput').files[0];
             const btn = document.getElementById('mainBtn');
-            if (!content && !file) return;
+            if (!content && !file) return alert("Введите текст или добавьте фото");
 
             btn.disabled = true;
             try {
@@ -116,4 +125,36 @@
                     timestamp: serverTimestamp()
                 });
                 document.getElementById('content').value = "";
-                document.getElementById
+                document.getElementById('imageInput').value = "";
+            } catch (e) { alert("Ошибка публикации: проверьте правила доступа"); }
+            btn.disabled = false;
+        };
+
+        onSnapshot(query(collection(db, "requests"), orderBy("timestamp", "desc")), (snap) => {
+            const feed = document.getElementById('feed');
+            feed.innerHTML = "";
+            snap.forEach((s) => {
+                const d = s.data();
+                const isMe = auth.currentUser?.email === d.email;
+                feed.innerHTML += `
+                    <div class="post">
+                        <div class="post-header">
+                            <img src="${d.photo}" class="post-avatar">
+                            <b>${d.name}</b>
+                            <span class="time">${d.timestamp?.toDate().toLocaleTimeString() || ''}</span>
+                        </div>
+                        <p>${d.text || ""}</p>
+                        ${d.postImage ? `<img src="${d.postImage}" class="post-image">` : ""}
+                        <div class="actions">
+                            <button class="like-btn" onclick="processLike('${s.id}')">👍 ${d.likes || 0}</button>
+                            ${isMe ? `
+                                <button class="like-btn" onclick="editPost('${s.id}', '${d.text}')">✏️</button>
+                                <button class="like-btn" style="color:red" onclick="deletePost('${s.id}')">🗑️</button>
+                            ` : ""}
+                        </div>
+                    </div>`;
+            });
+        });
+    </script>
+</body>
+</html>
