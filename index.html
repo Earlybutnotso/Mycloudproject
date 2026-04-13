@@ -3,46 +3,39 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kafeshka Cloud</title>
+    <title>Kafeshka Status Monitor</title>
     <style>
         body { font-family: 'Inter', sans-serif; background: #f4f7f6; display: flex; flex-direction: column; align-items: center; padding: 20px; }
         .container { width: 100%; max-width: 500px; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 20px; }
-        .auth-bar { background: white; padding: 15px; border-radius: 12px; margin-bottom: 20px; display: flex; align-items: center; gap: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
-        .user-avatar { width: 40px; height: 40px; border-radius: 50%; border: 2px solid #007bff; }
+        .user-item { display: flex; align-items: center; gap: 15px; padding: 12px; border-bottom: 1px solid #eee; }
+        .user-item:last-child { border-bottom: none; }
+        .status-dot { width: 12px; height: 12px; border-radius: 50%; border: 2px solid rgba(0,0,0,0.1); }
         input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
-        button { background: #007bff; color: white; border: none; padding: 12px; border-radius: 6px; width: 100%; font-weight: 600; cursor: pointer; transition: 0.3s; }
-        button:hover { background: #0056b3; }
-        .logout-btn { background: #ff4757; padding: 8px 15px; width: auto; font-size: 14px; }
-        .post { background: #fff; border: 1px solid #eaeaea; padding: 15px; margin-top: 15px; border-radius: 8px; width: 100%; max-width: 500px; }
-        .post-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
-        .post-avatar { width: 30px; height: 30px; border-radius: 50%; }
-        .post-image { width: 100%; border-radius: 8px; margin-top: 10px; display: block; }
-        .like-btn { cursor: pointer; border: none; background: #f8f9fa; padding: 5px 12px; border-radius: 20px; margin-top: 10px; font-size: 14px; }
-        .time { font-size: 11px; color: #999; margin-left: auto; }
-        .actions { display: flex; gap: 8px; }
+        .actions { display: flex; gap: 10px; margin-top: 10px; }
+        button { border: none; padding: 10px 15px; border-radius: 6px; font-weight: 600; cursor: pointer; transition: 0.3s; flex-grow: 1; color: white; }
+        .btn-green { background: #2ecc71; }
+        .btn-green:hover { background: #27ae60; }
+        .btn-red { background: #e74c3c; }
+        .btn-red:hover { background: #c0392b; }
+        #myInfo { font-size: 14px; color: #666; margin-bottom: 10px; }
     </style>
 </head>
 <body>
 
-    <div id="authSection" class="container" style="text-align: center;">
-        <button id="loginBtn">Вход с помощью Google</button>
-        <div id="userInfo" style="display: none;" class="auth-bar">
-            <img id="userPhoto" class="user-avatar" src="">
-            <span id="userName" style="font-weight: bold;"></span>
-            <button id="logoutBtn" class="logout-btn">Выйти</button>
+    <div class="container">
+        <h3>Установить мой статус</h3>
+        <div id="myInfo">Загрузка профиля...</div>
+        <input type="text" id="statusText" placeholder="Что вы делаете сейчас?">
+        <div class="actions">
+            <button class="btn-green" onclick="updateMyStatus('#2ecc71')">В сети</button>
+            <button class="btn-red" onclick="updateMyStatus('#e74c3c')">Занят</button>
         </div>
     </div>
 
-    <div id="messageForm" class="container" style="display: none;">
-        <h3>Создать запись</h3>
-        <input type="text" id="name" readonly>
-        <input type="email" id="email" readonly>
-        <input type="text" id="content" placeholder="Что нового?">
-        <input type="file" id="imageInput" accept="image/*" style="border:none;">
-        <button id="mainBtn">Опубликовать</button>
+    <div class="container">
+        <h3>Монитор статусов</h3>
+        <div id="grouplist">Загрузка списка...</div>
     </div>
-
-    <div id="feed"></div>
 
     <script type="module">
         import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
@@ -50,48 +43,53 @@
         const URL = 'https://ktnmdigdnpgklgdndluk.supabase.co';
         const KEY = 'sb_publishable_351DoHHU1FXJu2BsSvTV3A_dcQGSvlU';
         const supabase = createClient(URL, KEY);
+        const MY_ID = 'eed2d41e-e894-4088-af29-8ced5271d359';
 
-        const MY_ID = 'eed2d41e-e894-4088-af29-8ced5271d359'
+        window.updateMyStatus = (color) => {
+            const text = document.getElementById('statusText').value;
+            window.changeStatus(text, color);
+        };
 
         window.changeStatus = async (text, color) => {
             const { error } = await supabase
-            .from('profiles')
-            .update({ status: text, color: color })
-            .eq('id', MY_ID);
+                .from('profiles')
+                .update({ status: text, color: color })
+                .eq('id', MY_ID);
 
-        if (error) {
-            alert("Ошибка, проверьте RLS политики в Supabase.");
-            console.error(error);
-        } else {
-            fetchGroup();
-        }
-    };
+            if (error) {
+                alert("Ошибка, проверьте RLS политики в Supabase.");
+                console.error(error);
+            } else {
+                fetchGroup();
+            }
+        };
 
-    async function fetchGroup() {
-        const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .order('username', {ascending: true});
+        async function fetchGroup() {
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('*')
+                .order('username', { ascending: true });
 
-    if (error) return console.error(error);
+            if (error) return console.error(error);
 
-        const list = document.getElementById('grouplist');
-        list.innerHTML = data.map(user => `
-            <div class="user-item">
-                <div class="statur-dot" style="background: ${user.color} || '#ccc'}"></div>
-                <div style="flex-grow: 1;">
-                    <strong>${user.username}</strong><br>
-                    <small style="color: #666;">${user.status || 'Статус не задан'}</small>
+            const list = document.getElementById('grouplist');
+            list.innerHTML = data.map(user => `
+                <div class="user-item">
+                    <div class="status-dot" style="background: ${user.color || '#ccc'}"></div>
+                    <div style="flex-grow: 1;">
+                        <strong>${user.username}</strong><br>
+                        <small style="color: #666;">${user.status || 'Статус не задан'}</small>
+                    </div>
                 </div>
-            </div>
-        ').join(``);
+            `).join('');
 
-        const me = data.find(u => u.id === MY_ID);
-        if (me) document.getElementById('myInfo').innerText = 'Вы зашли как: ${me.username}';
+            const me = data.find(u => u.id === MY_ID);
+            if (me) {
+                document.getElementById('myInfo').innerText = `Вы зашли как: ${me.username}`;
+            }
         }
 
         fetchGroup();
-
         setInterval(fetchGroup, 5000);
     </script>
 </body>
