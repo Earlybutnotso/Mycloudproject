@@ -54,6 +54,7 @@
             const { error } = await supabase
                 .from('profiles')
                 .update({ status: text, color: color })
+                ALTER TABLE profiles ADD COLUMN color text;
                 .eq('id', MY_ID);
 
             if (error) {
@@ -70,7 +71,11 @@
                 .select('*')
                 .order('username', { ascending: true });
 
-            if (error) return console.error(error);
+            if (error) {
+    document.getElementById('grouplist').innerHTML = "Ошибка загрузки списка.";
+    return console.error(error);
+}
+
 
             const list = document.getElementById('grouplist');
             list.innerHTML = data.map(user => `
