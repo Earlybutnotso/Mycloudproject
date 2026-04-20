@@ -59,7 +59,6 @@
             const { error } = await supabase
                 .from('profiles')
                 .update({ status: text, color: color })
-                ALTER TABLE profiles ADD COLUMN color text;
                 .eq('id', MY_ID);
 
             if (error) {
