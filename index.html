@@ -43,37 +43,30 @@
   </div>
 
   <script type="module">
-    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
 
-    const URL = 'https://ktnmdigdnpgklgdndluk.supabase.co';
-    const KEY = 'sb_publishable_351DoHHU1FXJu2BsSvTV3A_dcQGSvlU';
-    const supabase = createClient(URL, KEY);
+const URL = 'https://ktnmdigdnpgklgdndluk.supabase.co';
+const KEY = 'sb_publishable_351DoHHU1FXJu2BsSvTV3A_dcQGSvlU';
+const supabase = createClient(URL, KEY);
 
-    let MY_ID = null;
+// Вход через Google
+async function signInWithGoogle() {
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+  });
 
-    // Вход через Google
-    window.signInWithGoogle = async () => {
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-      });
-      if (error) {
-        alert("Ошибка входа через Google");
-        console.error(error);
-      }
-    };
+  if (error) {
+    console.error("Ошибка входа:", error);
+  } else {
+    console.log("OAuth redirect:", data);
+  }
+}
 
-    // Получение текущего пользователя
-    async function initUser() {
-      const { data: { user }, error } = await supabase.auth.getUser();
-      if (error) {
-        console.error("Ошибка получения пользователя:", error);
-        return;
-      }
-      if (user) {
-        MY_ID = user.id;
-        document.getElementById('myInfo').innerText = `Вы вошли как: ${user.email}`;
-      }
-    }
+// Получение текущего пользователя
+async function getUserId() {
+  const { data: { user } } = await supabase.auth.getUser();
+  return user?.id;
+}
 
     window.updateMyStatus = (color) => {
       const text = document.getElementById('statusText').value;
