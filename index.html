@@ -45,6 +45,11 @@
         const supabase = createClient(URL, KEY);
         const MY_ID = 'eed2d41e-e894-4088-af29-8ced5271d359';
 
+        async function signInWithGoogle() {
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+  });
+
         window.updateMyStatus = (color) => {
             const text = document.getElementById('statusText').value;
             window.changeStatus(text, color);
