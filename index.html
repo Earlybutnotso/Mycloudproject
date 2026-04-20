@@ -1,123 +1,84 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Kafeshka Status Monitor</title>
-  <style>
-    body { font-family: 'Inter', sans-serif; background: #f4f7f6; display: flex; flex-direction: column; align-items: center; padding: 20px; }
-    .container { width: 100%; max-width: 500px; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 20px; }
-    .user-item { display: flex; align-items: center; gap: 15px; padding: 12px; border-bottom: 1px solid #eee; }
-    .user-item:last-child { border-bottom: none; }
-    .status-dot { width: 12px; height: 12px; border-radius: 50%; border: 2px solid rgba(0,0,0,0.1); }
-    input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
-    .actions { display: flex; gap: 10px; margin-top: 10px; }
-    button { border: none; padding: 10px 15px; border-radius: 6px; font-weight: 600; cursor: pointer; transition: 0.3s; flex-grow: 1; color: white; }
-    .btn-green { background: #2ecc71; }
-    .btn-green:hover { background: #27ae60; }
-    .btn-red { background: #e74c3c; }
-    .btn-red:hover { background: #c0392b; }
-    #myInfo { font-size: 14px; color: #666; margin-bottom: 10px; }
-    .btn-google { background:#4285F4; color:white; padding:10px 15px; border:none; border-radius:6px; font-weight:600; cursor:pointer; }
-  </style>
-</head>
-<body>
-
-  <div class="container">
-    <button class="btn-google" onclick="signInWithGoogle()">Войти через Google</button>
-  </div>
-
-  <div class="container">
-    <h3>Установить мой статус</h3>
-    <div id="myInfo">Загрузка профиля...</div>
-    <input type="text" id="statusText" placeholder="Что вы делаете сейчас?">
-    <div class="actions">
-      <button class="btn-green" onclick="updateMyStatus('#2ecc71')">В сети</button>
-      <button class="btn-red" onclick="updateMyStatus('#e74c3c')">Занят</button>
-    </div>
-  </div>
-
-  <div class="container">
-    <h3>Монитор статусов</h3>
-    <div id="grouplist">Загрузка списка...</div>
-  </div>
-
-  <script type="module">
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
 
 const URL = 'https://ktnmdigdnpgklgdndluk.supabase.co';
 const KEY = 'sb_publishable_351DoHHU1FXJu2BsSvTV3A_dcQGSvlU';
 const supabase = createClient(URL, KEY);
 
+let MY_ID = null;
+
 // Вход через Google
-async function signInWithGoogle() {
+window.signInWithGoogle = async () => {
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
   });
-
   if (error) {
     console.error("Ошибка входа:", error);
+    alert("Не удалось войти через Google");
+  }
+};
+
+// Получение текущего пользователя
+async function initUser() {
+  const { data: { user }, error } = await supabase.auth.getUser();
+  if (error) {
+    console.error("Ошибка получения пользователя:", error);
+    return;
+  }
+  if (user) {
+    MY_ID = user.id;
+    document.getElementById('myInfo').innerText = `Вы вошли как: ${user.email}`;
   } else {
-    console.log("OAuth redirect:", data);
+    document.getElementById('myInfo').innerText = "Вы не авторизованы";
   }
 }
 
-// Получение текущего пользователя
-async function getUserId() {
-  const { data: { user } } = await supabase.auth.getUser();
-  return user?.id;
+window.updateMyStatus = (color) => {
+  const text = document.getElementById('statusText').value;
+  window.changeStatus(text, color);
+};
+
+window.changeStatus = async (text, color) => {
+  if (!MY_ID) {
+    alert("Ошибка: пользователь не авторизован.");
+    return;
+  }
+  const { error } = await supabase
+    .from('profiles')
+    .update({ status: text, color: color })
+    .eq('id', MY_ID);
+
+  if (error) {
+    alert("Ошибка, проверьте RLS политики в Supabase.");
+    console.error(error);
+  } else {
+    fetchGroup();
+  }
+};
+
+async function fetchGroup() {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .order('username', { ascending: true });
+
+  if (error) {
+    document.getElementById('grouplist').innerHTML = "Ошибка загрузки списка.";
+    return console.error(error);
+  }
+
+  const list = document.getElementById('grouplist');
+  list.innerHTML = data.map(user => `
+    <div class="user-item">
+      <div class="status-dot" style="background: ${user.color || '#ccc'}"></div>
+      <div style="flex-grow: 1;">
+        <strong>${user.username}</strong><br>
+        <small style="color: #666;">${user.status || 'Статус не задан'}</small>
+      </div>
+    </div>
+  `).join('');
 }
 
-    window.updateMyStatus = (color) => {
-      const text = document.getElementById('statusText').value;
-      window.changeStatus(text, color);
-    };
-
-    window.changeStatus = async (text, color) => {
-      if (!MY_ID) {
-        alert("Ошибка: пользователь не авторизован.");
-        return;
-      }
-      const { error } = await supabase
-        .from('profiles')
-        .update({ status: text, color: color })
-        .eq('id', MY_ID);
-
-      if (error) {
-        alert("Ошибка, проверьте RLS политики в Supabase.");
-        console.error(error);
-      } else {
-        fetchGroup();
-      }
-    };
-
-    async function fetchGroup() {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .order('username', { ascending: true });
-
-      if (error) {
-        document.getElementById('grouplist').innerHTML = "Ошибка загрузки списка.";
-        return console.error(error);
-      }
-
-      const list = document.getElementById('grouplist');
-      list.innerHTML = data.map(user => `
-        <div class="user-item">
-          <div class="status-dot" style="background: ${user.color || '#ccc'}"></div>
-          <div style="flex-grow: 1;">
-            <strong>${user.username}</strong><br>
-            <small style="color: #666;">${user.status || 'Статус не задан'}</small>
-          </div>
-        </div>
-      `).join('');
-    }
-
-    // Инициализация
-    initUser();
-    fetchGroup();
-    setInterval(fetchGroup, 5000);
-  </script>
-</body>
-</html>
+// Инициализация
+initUser();
+fetchGroup();
+setInterval(fetchGroup, 5000);
