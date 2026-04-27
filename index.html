@@ -46,21 +46,12 @@
     <div id="grouplist">Загрузка списка...</div>
   </div>
 
-  <!-- Конфигурация загружается из переменных окружения -->
-  <script>
-    // Загружаем переменные окружения
-    window.__ENV__ = {
-      VITE_SUPABASE_URL: import.meta.env.VITE_SUPABASE_URL || localStorage.getItem('VITE_SUPABASE_URL') || 'https://ktnmdigdnpgklgdndluk.supabase.co',
-      VITE_SUPABASE_ANON_KEY: import.meta.env.VITE_SUPABASE_ANON_KEY || localStorage.getItem('VITE_SUPABASE_ANON_KEY') || ''
-    };
-  </script>
-
   <script type="module">
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
 
     // Загружаем конфигурацию из переменных окружения
-    const URL = window.__ENV__.VITE_SUPABASE_URL;
-    const KEY = window.__ENV__.VITE_SUPABASE_ANON_KEY;
+    const URL = import.meta.env.VITE_SUPABASE_URL || 'https://ktnmdigdnpgklgdndluk.supabase.co';
+    const KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
     // Проверка конфигурации
     if (!URL || !KEY) {
@@ -92,6 +83,9 @@
       try {
         const { data, error } = await supabase.auth.signInWithOAuth({
           provider: 'google',
+          options: {
+            redirectTo: window.location.origin
+          }
         });
         if (error) {
           alert("Ошибка входа через Google: " + error.message);
