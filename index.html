@@ -20,9 +20,12 @@
     .btn-red:hover { background: #c0392b; }
     #myInfo { font-size: 14px; color: #666; margin-bottom: 10px; }
     .btn-google { background:#4285F4; color:white; padding:10px 15px; border:none; border-radius:6px; font-weight:600; cursor:pointer; }
+    .error { background: #fee; color: #c00; padding: 12px; border-radius: 6px; margin-bottom: 10px; display: none; }
   </style>
 </head>
 <body>
+
+  <div class="error" id="configError"></div>
 
   <div class="container">
     <button class="btn-google" onclick="signInWithGoogle()">Войти через Google</button>
@@ -43,45 +46,81 @@
     <div id="grouplist">Загрузка списка...</div>
   </div>
 
+  <!-- Конфигурация загружается из переменных окружения -->
+  <script>
+    // Загружаем переменные окружения
+    window.__ENV__ = {
+      VITE_SUPABASE_URL: import.meta.env.VITE_SUPABASE_URL || localStorage.getItem('VITE_SUPABASE_URL') || 'https://ktnmdigdnpgklgdndluk.supabase.co',
+      VITE_SUPABASE_ANON_KEY: import.meta.env.VITE_SUPABASE_ANON_KEY || localStorage.getItem('VITE_SUPABASE_ANON_KEY') || ''
+    };
+  </script>
+
   <script type="module">
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
 
-    // ⚠️ ВАЖНО: Переместите эти значения в переменные окружения!
-    // Используйте переменные окружения вместо прямого указания в коде
-    const URL = 'https://ktnmdigdnpgklgdndluk.supabase.co';
-    const KEY = 'sb_publishable_7BHpXx6LfqjFnr14RnYWgw_pbZH1L6R';
-    const supabase = createClient(URL, KEY);
+    // Загружаем конфигурацию из переменных окружения
+    const URL = window.__ENV__.VITE_SUPABASE_URL;
+    const KEY = window.__ENV__.VITE_SUPABASE_ANON_KEY;
 
+    // Проверка конфигурации
+    if (!URL || !KEY) {
+      const errorDiv = document.getElementById('configError');
+      errorDiv.style.display = 'block';
+      errorDiv.textContent = '❌ Ошибка конфигурации: Переменные окружения не установлены. Проверьте .env.local файл.';
+      throw new Error('Missing Supabase credentials');
+    }
+
+    const supabase = createClient(URL, KEY);
     let MY_ID = null;
 
-    // Функция для безопасного отображения HTML
+    // Функция для безопасного отображения HTML (защита от XSS)
     function escapeHtml(text) {
       const div = document.createElement('div');
       div.textContent = text;
       return div.innerHTML;
     }
 
+    // Функция для валидации цвета
+    function isValidColor(color) {
+      const s = new Option().style;
+      s.color = color;
+      return s.color !== '';
+    }
+
     // Вход через Google
     window.signInWithGoogle = async () => {
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-      });
-      if (error) {
-        alert("Ошибка входа через Google");
-        console.error(error);
+      try {
+        const { data, error } = await supabase.auth.signInWithOAuth({
+          provider: 'google',
+        });
+        if (error) {
+          alert("Ошибка входа через Google: " + error.message);
+          console.error(error);
+        }
+      } catch (err) {
+        console.error('Unexpected error:', err);
+        alert('Неожиданная ошибка при входе');
       }
     };
 
     // Получение текущего пользователя
     async function initUser() {
-      const { data: { user }, error } = await supabase.auth.getUser();
-      if (error) {
-        console.error("Ошибка получения пользователя:", error);
-        return;
-      }
-      if (user) {
-        MY_ID = user.id;
-        document.getElementById('myInfo').innerText = `Вы вошли как: ${user.email}`;
+      try {
+        const { data: { user }, error } = await supabase.auth.getUser();
+        if (error) {
+          console.error("Ошибка получения пользователя:", error);
+          document.getElementById('myInfo').innerText = 'Вы не авторизованы';
+          return;
+        }
+        if (user) {
+          MY_ID = user.id;
+          document.getElementById('myInfo').innerText = `Вы вошли как: ${escapeHtml(user.email)}`;
+        } else {
+          document.getElementById('myInfo').innerText = 'Пожалуйста, войдите через Google';
+        }
+      } catch (err) {
+        console.error('Unexpected error in initUser:', err);
+        document.getElementById('myInfo').innerText = 'Ошибка при загрузке профиля';
       }
     }
 
@@ -95,46 +134,65 @@
         alert("Ошибка: пользователь не авторизован.");
         return;
       }
-      const { error } = await supabase
-        .from('profiles')
-        .update({ status: text, color: color })
-        .eq('id', MY_ID);
 
-      if (error) {
-        alert("Ошибка, проверьте RLS политики в Supabase.");
-        console.error(error);
-      } else {
-        fetchGroup();
+      if (!isValidColor(color)) {
+        alert("Ошибка: неверный цвет.");
+        return;
+      }
+
+      try {
+        const { error } = await supabase
+          .from('profiles')
+          .update({ status: text, color: color })
+          .eq('id', MY_ID);
+
+        if (error) {
+          alert("Ошибка: " + error.message);
+          console.error(error);
+        } else {
+          fetchGroup();
+        }
+      } catch (err) {
+        console.error('Unexpected error:', err);
+        alert('Неожиданная ошибка при обновлении статуса');
       }
     };
 
     async function fetchGroup() {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .order('username', { ascending: true });
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .order('username', { ascending: true });
 
-      if (error) {
-        document.getElementById('grouplist').innerHTML = "Ошибка загрузки списка.";
-        return console.error(error);
-      }
+        if (error) {
+          document.getElementById('grouplist').innerHTML = "<strong style='color: #e74c3c;'>Ошибка загрузки списка.</strong>";
+          console.error(error);
+          return;
+        }
 
-      const list = document.getElementById('grouplist');
-      list.innerHTML = data.map(user => `
-        <div class="user-item">
-          <div class="status-dot" style="background: ${escapeHtml(user.color || '#ccc')}"></div>
-          <div style="flex-grow: 1;">
-            <strong>${escapeHtml(user.username)}</strong><br>
-            <small style="color: #666;">${escapeHtml(user.status || 'Статус не задан')}</small>
+        const list = document.getElementById('grouplist');
+        list.innerHTML = data.map(user => `
+          <div class="user-item">
+            <div class="status-dot" style="background: ${isValidColor(user.color) ? escapeHtml(user.color) : '#ccc'}"></div>
+            <div style="flex-grow: 1;">
+              <strong>${escapeHtml(user.username || 'Unknown')}</strong><br>
+              <small style="color: #666;">${escapeHtml(user.status || 'Статус не задан')}</small>
+            </div>
           </div>
-        </div>
-      `).join('');
+        `).join('');
+      } catch (err) {
+        console.error('Unexpected error in fetchGroup:', err);
+        document.getElementById('grouplist').innerHTML = "<strong style='color: #e74c3c;'>Ошибка загрузки списка.</strong>";
+      }
     }
 
     // Инициализация
     initUser().then(() => {
       fetchGroup();
       setInterval(fetchGroup, 5000);
+    }).catch(err => {
+      console.error('Initialization error:', err);
     });
   </script>
 </body>
