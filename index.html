@@ -1,197 +1,87 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Kafeshka Status Monitor</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
-  <style>
-    body { font-family: 'Inter', sans-serif; background: #f4f7f6; display: flex; flex-direction: column; align-items: center; padding: 20px; }
-    .container { width: 100%; max-width: 500px; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 20px; }
-    .user-item { display: flex; align-items: center; gap: 15px; padding: 12px; border-bottom: 1px solid #eee; }
-    .user-item:last-child { border-bottom: none; }
-    .status-dot { width: 12px; height: 12px; border-radius: 50%; border: 2px solid rgba(0,0,0,0.1); }
-    input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
-    .actions { display: flex; gap: 10px; margin-top: 10px; }
-    button { border: none; padding: 10px 15px; border-radius: 6px; font-weight: 600; cursor: pointer; transition: 0.3s; flex-grow: 1; color: white; }
-    .btn-green { background: #2ecc71; }
-    .btn-green:hover { background: #27ae60; }
-    .btn-red { background: #e74c3c; }
-    .btn-red:hover { background: #c0392b; }
-    #myInfo { font-size: 14px; color: #666; margin-bottom: 10px; }
-    .btn-google { background:#4285F4; color:white; padding:10px 15px; border:none; border-radius:6px; font-weight:600; cursor:pointer; }
-    .error { background: #fee; color: #c00; padding: 12px; border-radius: 6px; margin-bottom: 10px; display: none; }
-  </style>
+    <meta charset="UTF-8">
+    <title>Монитор статусов Supabase</title>
+    <!-- Подключение библиотеки Supabase через CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: sans-serif; padding: 20px; }
+        .user-card { border: 1px solid #ccc; padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .controls { margin-top: 20px; padding: 15px; background: #f0f0f0; }
+    </style>
 </head>
 <body>
 
-  <div class="error" id="configError"></div>
+    <h1>Монитор статусов</h1>
+    <div id="status-list">Загрузка данных...</div>
 
-  <div class="container">
-    <button class="btn-google" onclick="window.signInWithGoogle?.()">Войти через Google</button>
-  </div>
-
-  <div class="container">
-    <h3>Установить мой статус</h3>
-    <div id="myInfo">Загрузка профиля...</div>
-    <input type="text" id="statusText" placeholder="Что вы делаете сейчас?">
-    <div class="actions">
-      <button class="btn-green" onclick="window.updateMyStatus?.('#2ecc71')">В сети</button>
-      <button class="btn-red" onclick="window.updateMyStatus?.('#e74c3c')">Занят</button>
+    <div class="controls">
+        <h3>Обновить мой статус</h3>
+        <input type="text" id="new-status" placeholder="Введите новый статус">
+        <button onclick="updateStatus()">Обновить</button>
     </div>
-  </div>
 
-  <div class="container">
-    <h3>Монитор статусов</h3>
-    <div id="grouplist">Загрузка списка...</div>
-  </div>
+    <script>
+        // 1. Инициализация (используйте свои ключи из настроек проекта Supabase)
+        const SUPABASE_URL = 'https://ktnmdigdnpgklgdndluk.supabase.co'; 
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt0bm1kaWdkbnBna2xnZG5kbHVrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2MjE3MDEsImV4cCI6MjA5MTE5NzcwMX0.TKZXEXuQDVVcS_73BEZsfYsL2BsvCPeP8mETf5N4Frw';
+        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-  <script type="module">
-    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
+        // ВАЖНО: Скопируйте ваш ID из таблицы profiles в Supabase
+        const MY_USER_ID = 'eed2d41e-e894-4088-af29-8ced5271d359'; 
 
-    // Загружаем конфигурацию из переменных окружения
-    const URL = import.meta.env.VITE_SUPABASE_URL || 'https://ktnmdigdnpgklgdndluk.supabase.co';
-    const KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || localStorage.getItem('VITE_SUPABASE_ANON_KEY') || '';
+        // 2. Функция для получения и отображения данных (SELECT)
+        async function fetchStatuses() {
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('username, status');
 
-    console.log('Supabase URL:', URL);
-    console.log('Supabase KEY exists:', !!KEY);
+            if (error) {
+                console.error('Ошибка при получении данных:', error);
+                return;
+            }
 
-    // Проверка конфигурации
-    if (!URL || !KEY) {
-      const errorDiv = document.getElementById('configError');
-      errorDiv.style.display = 'block';
-      errorDiv.textContent = '❌ Ошибка конфигурации: Переменные окружения не установлены. Проверьте .env.local файл или localStorage.';
-      console.error('Missing credentials - URL:', !!URL, 'KEY:', !!KEY);
-      throw new Error('Missing Supabase credentials');
-    }
+            const listDiv = document.getElementById('status-list');
+            listDiv.innerHTML = ''; // Очистка перед обновлением
 
-    const supabase = createClient(URL, KEY);
-    let MY_ID = null;
-
-    // Функция для безопасного отображения HTML (защита от XSS)
-    function escapeHtml(text) {
-      const div = document.createElement('div');
-      div.textContent = text;
-      return div.innerHTML;
-    }
-
-    // Функция для валидации цвета
-    function isValidColor(color) {
-      const s = new Option().style;
-      s.color = color;
-      return s.color !== '';
-    }
-
-    // Вход через Google
-    window.signInWithGoogle = async () => {
-      try {
-        const { data, error } = await supabase.auth.signInWithOAuth({
-          provider: 'google',
-          options: {
-            redirectTo: window.location.origin
-          }
-        });
-        if (error) {
-          alert("Ошибка входа через Google: " + error.message);
-          console.error(error);
-        }
-      } catch (err) {
-        console.error('Unexpected error:', err);
-        alert('Неожиданная ошибка при входе');
-      }
-    };
-
-    // Получение текущего пользователя
-    async function initUser() {
-      try {
-        const { data: { user }, error } = await supabase.auth.getUser();
-        if (error) {
-          console.error("Ошибка получения пользователя:", error);
-          document.getElementById('myInfo').innerText = 'Вы не авторизованы';
-          return;
-        }
-        if (user) {
-          MY_ID = user.id;
-          document.getElementById('myInfo').innerText = `Вы вошли как: ${escapeHtml(user.email)}`;
-        } else {
-          document.getElementById('myInfo').innerText = 'Пожалуйста, войдите через Google';
-        }
-      } catch (err) {
-        console.error('Unexpected error in initUser:', err);
-        document.getElementById('myInfo').innerText = 'Ошибка при загрузке профиля';
-      }
-    }
-
-    window.updateMyStatus = (color) => {
-      const text = document.getElementById('statusText').value;
-      window.changeStatus(text, color);
-    };
-
-    window.changeStatus = async (text, color) => {
-      if (!MY_ID) {
-        alert("Ошибка: пользователь не авторизован.");
-        return;
-      }
-
-      if (!isValidColor(color)) {
-        alert("Ошибка: неверный цвет.");
-        return;
-      }
-
-      try {
-        const { error } = await supabase
-          .from('profiles')
-          .update({ status: text, color: color })
-          .eq('id', MY_ID);
-
-        if (error) {
-          alert("Ошибка: " + error.message);
-          console.error(error);
-        } else {
-          fetchGroup();
-        }
-      } catch (err) {
-        console.error('Unexpected error:', err);
-        alert('Неожиданная ошибка при обновлении статуса');
-      }
-    };
-
-    async function fetchGroup() {
-      try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .order('username', { ascending: true });
-
-        if (error) {
-          document.getElementById('grouplist').innerHTML = "<strong style='color: #e74c3c;'>Ошибка загрузки списка.</strong>";
-          console.error(error);
-          return;
+            data.forEach(user => {
+                const card = document.createElement('div');
+                card.className = 'user-card';
+                card.innerHTML = `<strong>${user.username}</strong>: ${user.status || 'Статус не установлен'}`;
+                listDiv.appendChild(card);
+            });
         }
 
-        const list = document.getElementById('grouplist');
-        list.innerHTML = data.map(user => `
-          <div class="user-item">
-            <div class="status-dot" style="background: ${isValidColor(user.color) ? escapeHtml(user.color) : '#ccc'}"></div>
-            <div style="flex-grow: 1;">
-              <strong>${escapeHtml(user.username || 'Unknown')}</strong><br>
-              <small style="color: #666;">${escapeHtml(user.status || 'Статус не задан')}</small>
-            </div>
-          </div>
-        `).join('');
-      } catch (err) {
-        console.error('Unexpected error in fetchGroup:', err);
-        document.getElementById('grouplist').innerHTML = "<strong style='color: #e74c3c;'>Ошибка загрузки списка.</strong>";
-      }
-    }
+        // 3. Функция для обновления статуса (UPDATE)
+        async function updateStatus() {
+            const statusInput = document.getElementById('new-status');
+            const newStatus = statusInput.value;
 
-    // Инициализация
-    initUser().then(() => {
-      fetchGroup();
-      setInterval(fetchGroup, 5000);
-    }).catch(err => {
-      console.error('Initialization error:', err);
-    });
-  </script>
+            const { error } = await supabase
+                .from('profiles')
+                .update({ status: newStatus })
+                .eq('id', MY_USER_ID); // Обновление по вашему ID [1]
+
+            if (error) {
+                alert('Ошибка обновления: ' + error.message);
+            } else {
+                alert('Статус обновлен!');
+                statusInput.value = '';
+                fetchStatuses(); // Обновляем список на экране
+            }
+        }
+
+        // 4. Настройка Realtime (синхронизация в реальном времени)
+        supabase
+            .channel('public:profiles')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => {
+                fetchStatuses(); // Авто-обновление при любых изменениях в базе [2]
+            })
+            .subscribe();
+
+        // Первоначальная загрузка данных
+        fetchStatuses();
+    </script>
 </body>
 </html>
